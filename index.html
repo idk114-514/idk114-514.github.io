@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>姬曰</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <h1>齁语言加密</h1>
+    <p>啊哦…咕哦！哼哼～咿哦！咕呼！咿哼～啊嗯❤嗯齁❤哼咿❤哼唔…哼咿～咿哼❤哦喔～啊咕❤哦齁！</p>
+
+    <textarea id="inputText" placeholder="请输入要加密或解密的文字..."></textarea>
+
+    <div class="key-section">
+      <label for="keyInput">密钥（默认：onanii）:</label>
+      <input type="text" id="keyInput" value="onanii" />
+    </div>
+
+    <div class="button-group">
+      <button onclick="encryptText()">🔒 加密</button>
+      <button onclick="decryptText()">🔓 解密</button>
+    </div>
+
+    <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
+
+    <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
+
+    <footer>
+      <p>Github @ idk114-514 | Powered by Qwen</p>
+    </footer>
+  </div>
+</body>
+</html>
