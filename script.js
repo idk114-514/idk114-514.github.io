@@ -40,7 +40,7 @@ async function encrypt(text, key) {
 
 async function decrypt(ciphertext, key) {
   if (ciphertext.length % 3 !== 0) {
-    alert('错误: 密文长度必须是3的倍数！');
+    showToast('错误: 密文长度必须是3的倍数！','error');
     return '';
   }
 
@@ -53,7 +53,7 @@ async function decrypt(ciphertext, key) {
     const p = ciphertext[i + 2];
 
     if (!(a in D) || !(b in D) || !(p in Q)) {
-      alert('错误: 包含无效字符！');
+      showToast('错误: 包含无效字符！','error');
       return '';
     }
 
@@ -66,7 +66,7 @@ async function decrypt(ciphertext, key) {
     const decoder = new TextDecoder();
     return decoder.decode(new Uint8Array(result));
   } catch (e) {
-    alert('错误: 密钥错误或密文已损坏！');
+    showToast('错误: 密钥错误或密文已损坏！','error');
     return '';
   }
 }
@@ -75,7 +75,7 @@ async function encryptText() {
   const input = document.getElementById('inputText').value.trim();
   const key = document.getElementById('keyInput').value || 'onanii';
   if (!input) {
-    alert('请输入要加密的内容！');
+    showToast('请输入要加密的内容！','info');
     return;
   }
   const result = await encrypt(input, key);
@@ -86,7 +86,7 @@ async function decryptText() {
   const input = document.getElementById('inputText').value.trim();
   const key = document.getElementById('keyInput').value || 'onanii';
   if (!input) {
-    alert('请输入要解密的内容！');
+    showToast('请输入要解密的内容！','info');
     return;
   }
   const result = await decrypt(input, key);
@@ -96,10 +96,83 @@ async function decryptText() {
 function copyResult() {
   const output = document.getElementById('outputText');
   if (!output.value) {
-    alert('没有内容可复制！');
+    showToast('没有内容可复制！','error');
     return;
   }
   output.select();
   document.execCommand('copy');
-  alert(' 已复制到剪贴板！');
+  showToast(' 已复制到剪贴板！','success');
 }
+
+// 输入输出对调：把输出内容移到输入框，清空输出
+function swapIO() {
+  const inputBox = document.getElementById('inputText');
+  const outputBox = document.getElementById('outputText');
+
+  const outputValue = outputBox.value.trim();
+  if (!outputValue) {
+    showToast('❌ 输出框是空的，无法对调！','error');
+    return;
+  }
+
+  inputBox.value = outputValue;
+  outputBox.value = '';
+  showToast('✅ 已将输出内容移至输入框！','success');
+}
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast ' + type; 
+  toast.classList.add('show');
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000);
+}
+
+const inputBox = document.getElementById('inputText');
+const outputBox = document.getElementById('outputText');
+const autoEncryptToggle = document.getElementById('autoEncryptToggle');
+
+let debounceTimer;
+function debounce(func, delay = 100) {
+  return () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(func, delay);
+  };
+}
+
+async function handleInput() {
+  if (!autoEncryptToggle.checked) return;
+
+  const text = inputBox.value.trim();
+  const key = document.getElementById('keyInput').value || 'onanii';
+
+  if (!text) {
+    outputBox.value = '';
+    return;
+  }
+
+  const isMeowCode = [...text].every(
+    char => S.includes(char) || P.includes(char)
+  ) && text.length % 3 === 0;
+
+  if (isMeowCode) {
+    const result = await decrypt(text, key);
+    outputBox.value = result;
+  } else {
+    const result = await encrypt(text, key);
+    outputBox.value = result;
+  }
+}
+
+inputBox.addEventListener('input', debounce(handleInput));
+
+autoEncryptToggle.addEventListener('change', () => {
+  if (autoEncryptToggle.checked) {
+    showToast('✅ 已开启实时加密/解密', 'info');
+    handleInput(); 
+  } else {
+    showToast('⏸️ 实时模式已关闭', 'info');
+  }
+});

@@ -18,6 +18,11 @@
       <label for="keyInput">密钥（默认：onanii）:</label>
       <input type="text" id="keyInput" value="onanii" />
     </div>
+    <div class="toggle-section">
+      <label>
+      <input type="checkbox" id="autoEncryptToggle"> 实时模式
+      </label>
+    </div>
 
     <div class="button-group">
       <button onclick="encryptText()">🔒 加密</button>
@@ -27,10 +32,11 @@
     <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
 
     <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
-
+    <button id="swapBtn" onclick="swapIO()">🔁 一键交换</button>
     <footer>
       <p>Github @ idk114-514</p>
     </footer>
   </div>
+  <div id="toast" class="toast"></div>
 </body>
 </html>

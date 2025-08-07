@@ -177,3 +177,55 @@ footer {
     padding: 8px 16px;
   }
 }
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  background: #333;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  max-width: 80%;
+  word-break: break-word;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.success {
+  background: #4caf50;
+}
+
+.toast.error {
+  background: #f44336;
+}
+
+.toast.info {
+  background: #2196f3;
+}
+.toggle-section {
+  margin: 15px 0;
+  text-align: left;
+}
+
+.toggle-section label {
+  font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-section input[type="checkbox"] {
+  transform: scale(1.2);
+  accent-color: #e76f8e;
+}
