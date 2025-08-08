@@ -25,7 +25,7 @@ body {
 
 @media  (max-width: 800px) and (orientation: portrait) {
   body {
-    background-image: url('phone.jpg');
+    background-image: url('mobile.jpg');
     background-size: cover; /* 小图案重复 */
     background-position: center;
     background-repeat: no-repeat;
