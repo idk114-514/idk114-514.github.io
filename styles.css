@@ -122,7 +122,7 @@ button {
 }
 
 button:hover {
-  background: #d45b7c;
+  background: #a2cfff;
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
@@ -153,7 +153,7 @@ footer {
     background-size: cover;
     background-position: center top;
     background-attachment: scroll;
-    padding: 0;
+    padding: 10px;
     margin: 0;
     height: 100vh;
     display: flex;
@@ -165,20 +165,20 @@ footer {
   .container {
     width: 90%;
     max-width: 480px;
-    height: 90vh; /* 占屏幕高度 90% */
-    max-height: 700px;
+    max-height: 95vh; /* 允许轻微高度限制 */
     background: rgba(255, 250, 244, 0.1);
     border-radius: 18px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
     display: flex;
     flex-direction: column;
     padding: 16px;
-    overflow: hidden;
+    gap: 8px; /* 统一间距 */
+    overflow: hidden; /* 防止溢出 */
   }
 
   h1 {
     font-size: 22px;
-    margin: 8px 0;
+    margin: 6px 0;
     color: #e76f8e;
     flex-shrink: 0;
   }
@@ -195,13 +195,13 @@ footer {
     height: 60px;
     border-radius: 50%;
     border: 2px solid #e76f8e;
-    margin: 10px auto;
+    margin: 8px auto;
     flex-shrink: 0;
   }
 
-  /* 输入区：可滚动 */
+  /* 输入输出框：固定高度，不滚动 */
   #inputText, #outputText {
-    height: 80px !important;
+    height: 70px;
     font-size: 15px;
     padding: 10px;
     border-radius: 8px;
@@ -211,7 +211,7 @@ footer {
   }
 
   .key-section {
-    margin: 12px 0;
+    margin: 10px 0;
     flex-shrink: 0;
   }
 
@@ -226,38 +226,63 @@ footer {
     width: 100%;
   }
 
-  .button-group {
-    margin: 12px 0;
+  .engine-toggle, .toggle-section, .char-count {
+    flex-shrink: 0;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .engine-toggle button {
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  /* 所有按钮统一风格 */
+  .button-group,
+  .copy-swap-group {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
     flex-shrink: 0;
   }
 
   button {
-    padding: 10px 18px;
-    font-size: 15px;
-    margin: 4px 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 14px;
     border-radius: 24px;
+    white-space: nowrap;
   }
 
   #swapBtn, #copyBtn {
-    padding: 10px 6px;
-    font-size: 15px;
-    margin-top: 8px;
+    background: #a2cfff;
+  }
+
+  #copyBtn:hover, #swapBtn:hover {
+    background: #8ab9f7;
   }
 
   footer {
-    margin-top: auto; /* 推到底部 */
+    margin-top: auto;
     font-size: 12px;
     color: #aaa;
+    text-align: center;
     flex-shrink: 0;
   }
 
-  /* 防止键盘弹出时页面缩放错乱 */
+  /* 安全视口适配 */
   @supports (height: 100dvh) {
-    body, .container {
-      height: 100dvh; /* 安全适配带地址栏的浏览器 */
+    body {
+      height: 100dvh;
+    }
+    .container {
+      height: 90dvh;
     }
   }
 }
+
 .toast {
   position: fixed;
   bottom: 20px;
@@ -309,4 +334,24 @@ footer {
 .toggle-section input[type="checkbox"] {
   transform: scale(1.2);
   accent-color: #e76f8e;
+}
+.engine-toggle {
+  margin: 10px 0;
+}
+
+.engine-toggle button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 20px;
+}
+
+.char-count {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: #666;
+  text-align: left;
+  font-family: monospace;
 }

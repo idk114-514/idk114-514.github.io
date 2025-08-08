@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>姬曰</title>
+  <title>姬言</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="script.js" defer></script>
   <link rel="preload" as="image" href="mobile.jpg">
   <link rel="preload" as="image" href="bg.jpg">
+  <script src="pako.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -25,14 +26,16 @@
       <input type="checkbox" id="autoEncryptToggle"> 实时模式
       </label>
     </div>
-
+    <div class="engine-toggle">
+      <button id="engineToggle" onclick="switchEngine()" style="background:#4caf50">🔄 使用 V3 引擎（推荐）</button>
+    </div>
     <div class="button-group">
       <button onclick="encryptText()">🔒 加密</button>
       <button onclick="decryptText()">🔓 解密</button>
     </div>
 
     <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
-
+    <div class="char-count" id="charCount">字符数: 0</div>
     <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
     <button id="swapBtn" onclick="swapIO()">🔁 一键交换</button>
     <footer>
