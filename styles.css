@@ -23,183 +23,119 @@ body {
   transition: background 0.3s ease;
 }
 
-@media  (max-width: 800px) and (orientation: portrait) {
+@media (max-width: 768px) and (orientation: portrait) {
   body {
-    background-image: url('mobile.jpg');
-    background-size: cover; /* 小图案重复 */
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: scroll; /* 避免卡顿 */
+    background-image: 
+      linear-gradient(rgba(255, 250, 244, 0.44), rgba(255, 250, 244, 0.44)),
+      url('mobile.jpg');
+    background-blend-mode: overlay;
+    background-size: cover;
+    background-position: center top;
+    background-attachment: scroll;
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
   }
 
   .container {
-    padding: 20px;
-    margin: 10px;
-  }
-}
-
-@media (max-width: 768px) and (orientation: landscape) {
-  .container {
-    max-width: 90%;
-    padding: 20px;
-  }
-}
-
-.container {
-  width: 100%;
-  max-width: 600px;
-  padding: 30px;
-  background: rgba(255, 250, 244, 0.92);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid #ffe4e8;
-}
-
-h1 {
-  color: #e76f8e;
-  margin-bottom: 12px;
-  font-size: 28px;
-}
-
-p {
-  color: #666;
-  font-size: 15px;
-  margin-bottom: 20px;
-}
-
-.cat-img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 3px solid #e76f8e;
-  margin: 15px auto;
-  object-fit: cover;
-}
-
-textarea {
-  width: 100%;
-  height: 110px;
-  padding: 14px;
-  margin: 12px 0;
-  border: 2px solid #ffd1dc;
-  border-radius: 12px;
-  font-size: 16px;
-  resize: vertical;
-  background: #fff8f8;
-  color: #333;
-  font-family: monospace;
-}
-
-textarea:focus {
-  outline: none;
-  border-color: #e76f8e;
-  box-shadow: 0 0 0 3px rgba(231, 111, 142, 0.2);
-}
-
-.key-section {
-  text-align: left;
-  margin: 18px 0;
-}
-
-.key-section label {
-  font-size: 14px;
-  color: #555;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.key-section input {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #cfe2f3;
-  border-radius: 8px;
-  font-size: 15px;
-  background: #f8fdff;
-  color: #333;
-}
-
-.key-section input:focus {
-  outline: none;
-  border-color: #a2cfff;
-}
-
-.button-group {
-  margin: 20px 0;
-}
-
-button {
-  background: #e76f8e;
-  color: white;
-  border: none;
-  padding: 12px 26px;
-  margin: 0 10px;
-  border-radius: 30px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-weight: 500;
-}
-
-button:hover {
-  background: #d45b7c;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-#copyBtn {
-  background: #a2cfff;
-  margin-top: 12px;
-  padding: 10px 20px;
-  font-size: 15px;
-}
-
-#copyBtn:hover {
-  background: #8ab9f7;
-}
-
-footer {
-  margin-top: 30px;
-  color: #aaa;
-  font-size: 13px;
-}
-
-/* 手机适配 */
-@media (max-width: 480px) {
-  .container {
-    padding: 20px;
-    margin: 10px;
-    border-radius: 14px;
+    width: 90%;
+    max-width: 480px;
+    height: 90vh; /* 占屏幕高度 90% */
+    max-height: 700px;
+    background: rgba(255, 250, 244, 0.46);
+    border-radius: 18px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+    border: 1px solid #ffe4e8;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    overflow: hidden;
   }
 
   h1 {
-    font-size: 24px;
+    font-size: 22px;
+    margin: 8px 0;
+    color: #e76f8e;
+    flex-shrink: 0;
   }
 
   p {
-    font-size: 14px;
+    font-size: 13px;
+    color: #666;
+    margin: 4px 0;
+    flex-shrink: 0;
   }
 
   .cat-img {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid #e76f8e;
+    margin: 10px auto;
+    flex-shrink: 0;
   }
 
-  textarea, .key-section input {
+  /* 输入区：可滚动 */
+  #inputText, #outputText {
+    height: 80px !important;
     font-size: 15px;
-    padding: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #fff8f8;
+    resize: none;
+    flex-shrink: 0;
+  }
+
+  .key-section {
+    margin: 12px 0;
+    flex-shrink: 0;
+  }
+
+  .key-section label {
+    font-size: 13px;
+    color: #555;
+  }
+
+  .key-section input {
+    font-size: 14px;
+    padding: 8px;
+    width: 100%;
+  }
+
+  .button-group {
+    margin: 12px 0;
+    flex-shrink: 0;
   }
 
   button {
-    padding: 10px 20px;
+    padding: 10px 18px;
     font-size: 15px;
-    margin: 5px;
+    margin: 4px 6px;
+    border-radius: 24px;
   }
 
-  #copyBtn {
-    padding: 8px 16px;
+  #swapBtn, #copyBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  footer {
+    margin-top: auto; /* 推到底部 */
+    font-size: 12px;
+    color: #aaa;
+    flex-shrink: 0;
+  }
+
+  /* 防止键盘弹出时页面缩放错乱 */
+  @supports (height: 100dvh) {
+    body, .container {
+      height: 100dvh; /* 安全适配带地址栏的浏览器 */
+    }
   }
 }
 .toast {
