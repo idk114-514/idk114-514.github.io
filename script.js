@@ -239,7 +239,7 @@ function switchEngine() {
   const btn = document.getElementById('engineToggle');
   if (currentEngine === 'v1') {
     currentEngine = 'v3';
-    btn.textContent = '🔄 使用 V3 引擎（推荐）';
+    btn.textContent = '♿ 使用 V3 引擎（文本压缩）';
     btn.style.background = '#4caf50';
   } else {
     currentEngine = 'v1';

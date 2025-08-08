@@ -8,21 +8,19 @@ body {
   color: #333;
   line-height: 1.6;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
+  padding: 40px 20px;
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
   background-image: url('bg.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  transition: background 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden auto; /* 允许滚动，但我们尽量避免 */
 }
-
 
 .container {
   width: 100%;
@@ -58,16 +56,19 @@ p {
 
 textarea {
   width: 100%;
-  height: 110px;
-  padding: 14px;
-  margin: 12px 0;
+  height: 90px;
+  min-height: 90px;
+  max-height: 120px;
+  padding: 12px;
+  margin: 10px 0;
   border: 2px solid #ffd1dc;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: 15px;
   resize: vertical;
   background: #fff8f8;
   color: #333;
   font-family: monospace;
+  overflow-y: auto;
 }
 
 textarea:focus {
@@ -78,7 +79,7 @@ textarea:focus {
 
 .key-section {
   text-align: left;
-  margin: 18px 0;
+  margin: 12px 0;
 }
 
 .key-section label {
@@ -103,186 +104,103 @@ textarea:focus {
   border-color: #a2cfff;
 }
 
-.button-group {
-  margin: 20px 0;
+.toggle-section {
+  margin: 10px 0;
+  text-align: left;
 }
 
-button {
+.toggle-section label {
+  font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-section input[type="checkbox"] {
+  transform: scale(1.2);
+  accent-color: #e76f8e;
+}
+
+.engine-toggle {
+  margin: 8px 0;
+}
+
+.engine-toggle button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 20px;
+  width: 100%;
+}
+
+.char-count {
+  margin: 6px 0 4px;
+  font-size: 13px;
+  color: #666;
+  text-align: left;
+  font-family: monospace;
+}
+
+/* === 按钮组：PC 端 inline-block，移动端 flex === */
+
+.button-group {
+  text-align: center;
+  margin: 16px 0;
+}
+
+.button-group button {
+  display: inline-block;
   background: #e76f8e;
   color: white;
   border: none;
-  padding: 12px 26px;
-  margin: 0 10px;
+  padding: 12px 24px;
+  margin: 0 8px;
   border-radius: 30px;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-weight: 500;
 }
 
-button:hover {
-  background: #a2cfff;
+.button-group button:hover {
+  background: #d05a7a;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-#copyBtn {
+.copy-swap-group {
+  text-align: center;
+  margin: 14px 0;
+}
+
+.copy-swap-group button {
+  display: inline-block;
   background: #a2cfff;
-  margin-top: 12px;
+  color: white;
+  border: none;
   padding: 10px 20px;
+  margin: 0 8px;
+  border-radius: 30px;
   font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-#copyBtn:hover {
+.copy-swap-group button:hover {
   background: #8ab9f7;
+  transform: translateY(-2px);
 }
 
 footer {
-  margin-top: 30px;
+  margin-top: 20px;
   color: #aaa;
   font-size: 13px;
 }
 
-@media (max-width: 768px) and (orientation: portrait) {
-  body {
-    background-image: 
-      linear-gradient(rgba(255, 250, 244, 0.1), rgba(255, 250, 244, 0.1)),
-      url('mobile.jpg');
-    background-blend-mode: overlay;
-    background-size: cover;
-    background-position: center top;
-    background-attachment: scroll;
-    padding: 10px;
-    margin: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-  }
-
-  .container {
-    width: 90%;
-    max-width: 480px;
-    max-height: 95vh; /* 允许轻微高度限制 */
-    background: rgba(255, 250, 244, 0.1);
-    border-radius: 18px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    gap: 8px; /* 统一间距 */
-    overflow: hidden; /* 防止溢出 */
-  }
-
-  h1 {
-    font-size: 22px;
-    margin: 6px 0;
-    color: #e76f8e;
-    flex-shrink: 0;
-  }
-
-  p {
-    font-size: 13px;
-    color: #666;
-    margin: 4px 0;
-    flex-shrink: 0;
-  }
-
-  .cat-img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 2px solid #e76f8e;
-    margin: 8px auto;
-    flex-shrink: 0;
-  }
-
-  /* 输入输出框：固定高度，不滚动 */
-  #inputText, #outputText {
-    height: 70px;
-    font-size: 15px;
-    padding: 10px;
-    border-radius: 8px;
-    background: #fff8f8;
-    resize: none;
-    flex-shrink: 0;
-  }
-
-  .key-section {
-    margin: 10px 0;
-    flex-shrink: 0;
-  }
-
-  .key-section label {
-    font-size: 13px;
-    color: #555;
-  }
-
-  .key-section input {
-    font-size: 14px;
-    padding: 8px;
-    width: 100%;
-  }
-
-  .engine-toggle, .toggle-section, .char-count {
-    flex-shrink: 0;
-    text-align: left;
-    font-size: 13px;
-  }
-
-  .engine-toggle button {
-    padding: 6px 12px;
-    font-size: 13px;
-    width: 100%;
-  }
-
-  /* 所有按钮统一风格 */
-  .button-group,
-  .copy-swap-group {
-    display: flex;
-    gap: 10px;
-    margin: 10px 0;
-    flex-shrink: 0;
-  }
-
-  button {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 8px;
-    font-size: 14px;
-    border-radius: 24px;
-    white-space: nowrap;
-  }
-
-  #swapBtn, #copyBtn {
-    background: #a2cfff;
-  }
-
-  #copyBtn:hover, #swapBtn:hover {
-    background: #8ab9f7;
-  }
-
-  footer {
-    margin-top: auto;
-    font-size: 12px;
-    color: #aaa;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  /* 安全视口适配 */
-  @supports (height: 100dvh) {
-    body {
-      height: 100dvh;
-    }
-    .container {
-      height: 90dvh;
-    }
-  }
-}
-
+/* === Toast === */
 .toast {
   position: fixed;
   bottom: 20px;
@@ -307,51 +225,105 @@ footer {
   transform: translateX(-50%) translateY(0);
 }
 
-.toast.success {
-  background: #4caf50;
-}
+.toast.success { background: #4caf50; }
+.toast.error  { background: #f44336; }
+.toast.info   { background: #2196f3; }
 
-.toast.error {
-  background: #f44336;
-}
+/* === 移动端：开启 flex 布局，控制高度 === */
+@media (max-width: 768px) and (orientation: portrait) {
+  body {
+    background-image: 
+      linear-gradient(rgba(255, 250, 244, 0.1), rgba(255, 250, 244, 0.1)),
+      url('mobile.jpg');
+    background-blend-mode: overlay;
+    background-size: cover;
+    background-position: center top;
+    background-attachment: scroll;
+    padding: 10px;
+    margin: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
 
-.toast.info {
-  background: #2196f3;
-}
-.toggle-section {
-  margin: 15px 0;
-  text-align: left;
-}
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    height: 95dvh;
+    max-height: 95dvh;
+    overflow: hidden;
+  }
 
-.toggle-section label {
-  font-size: 14px;
-  color: #555;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+  h1 { font-size: 22px; margin: 6px 0; }
+  p { font-size: 13px; margin: 4px 0; }
 
-.toggle-section input[type="checkbox"] {
-  transform: scale(1.2);
-  accent-color: #e76f8e;
-}
-.engine-toggle {
-  margin: 10px 0;
-}
+  .cat-img {
+    width: 60px;
+    height: 60px;
+    margin: 8px auto;
+  }
 
-.engine-toggle button {
-  background: #4caf50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  font-size: 13px;
-  border-radius: 20px;
-}
+  textarea {
+    height: 70px;
+    min-height: 70px;
+    max-height: 70px;
+    font-size: 15px;
+    padding: 10px;
+  }
 
-.char-count {
-  margin: 8px 0 4px;
-  font-size: 13px;
-  color: #666;
-  text-align: left;
-  font-family: monospace;
+  .key-section, .toggle-section, .engine-toggle, .char-count {
+    flex-shrink: 0;
+  }
+
+  .key-section input,
+  .engine-toggle button {
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .engine-toggle button { padding: 6px 12px; }
+
+  .char-count { font-size: 13px; }
+
+  /* 移动端按钮 flex 均分 */
+  .button-group,
+  .copy-swap-group {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .button-group button,
+  .copy-swap-group button {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 14px;
+    border-radius: 24px;
+  }
+
+  .button-group button {
+    background: #e76f8e;
+    color: white;
+  }
+
+  .copy-swap-group button {
+    background: #a2cfff;
+    color: white;
+  }
+
+  footer {
+    margin-top: auto;
+    font-size: 12px;
+  }
+
+  @supports (height: 100dvh) {
+    body { height: 100dvh; }
+    .container { height: 95dvh; }
+  }
 }

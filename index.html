@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>姬言</title>
+  <title>姬言~❤</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="script.js" defer></script>
   <link rel="preload" as="image" href="mobile.jpg">
@@ -27,21 +27,22 @@
       </label>
     </div>
     <div class="engine-toggle">
-      <button id="engineToggle" onclick="switchEngine()" style="background:#4caf50">🔄 使用 V3 引擎（推荐）</button>
+      <button id="engineToggle" onclick="switchEngine()" style="background:#4caf50">🔄 使用 V3 引擎（文本压缩）</button>
     </div>
     <div class="button-group">
       <button onclick="encryptText()">🔒 加密</button>
       <button onclick="decryptText()">🔓 解密</button>
     </div>
 
-    <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
-    <div class="char-count" id="charCount">字符数: 0</div>
+  <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
+  <div class="char-count" id="charCount">字符数: 0</div>
+  <div class="copy-swap-group">
     <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
     <button id="swapBtn" onclick="swapIO()">🔁 一键交换</button>
-    <footer>
-      <p>Github @ idk114-514</p>
-    </footer>
   </div>
+  <footer>
+    <p>Github @ idk114-514</p>
+  </footer>
   <div id="toast" class="toast"></div>
 </body>
 </html>
