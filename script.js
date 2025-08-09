@@ -393,7 +393,7 @@ function switchEngine() {
     currentEngine = 'v4';
     btn.textContent = '🔄 使用 V4 引擎（多样化测试）';
     btn.style.background = '#e76f8e';
-    document.getElementById('keyInput').value = 'r18_onomatopoeia';
+    document.getElementById('keyInput').value = 'onanii';
   } else { // 'v4'
     currentEngine = 'v1';
     btn.textContent = '🔄 使用 V1 引擎';
