@@ -17,32 +17,58 @@
 
     <textarea id="inputText" placeholder="请输入要加密或解密的文字..."></textarea>
 
-    <div class="key-section">
+    <div class="v4-section" id="v4-section">
+      <div class="v4-info" id="v4EncryptInfo">V4传统模式使用文本密钥进行加密。</div>
+      <div class="v4-toggle">
+        <label>
+          <input type="checkbox" id="v4LegacyToggle" onchange="updateV4UI()" checked> 传统模式（文本密钥）
+        </label>
+      </div>
+      <div class="v4-e2e-keys" id="v4-e2e-keys" style="display: none;">
+        <h4>公钥（把它发给你的好基友）：</h4>
+        <textarea id="v4PublicKeyInput" placeholder="输入接收方的公钥以加密..."></textarea>
+        <h4>私钥（仅用于解密）：</h4>
+        <textarea id="v4PrivateKeyDisplay" placeholder="您的私钥会在此处显示..." readonly></textarea>
+        <div class="v4-button-group">
+          <button onclick="generateV4KeyPair()">生成密钥对</button>
+          <button onclick="downloadV4Key('public')">下载公钥</button>
+          <button onclick="downloadV4Key('private')">下载私钥</button>
+          <label for="uploadPrivateKey">上传私钥</label>
+          <input type="file" id="uploadPrivateKey" accept=".pem" onchange="uploadV4Key(event, 'private')">
+        </div>
+      </div>
+    </div>
+
+    <div class="key-section" id="key-section">
       <label for="keyInput">密钥（默认：onanii）:</label>
       <input type="text" id="keyInput" value="onanii" />
     </div>
+    
     <div class="toggle-section">
       <label>
-      <input type="checkbox" id="autoEncryptToggle"> 实时模式
+        <input type="checkbox" id="autoEncryptToggle"> 实时模式
       </label>
     </div>
+    
     <div class="engine-toggle">
       <button id="engineToggle" onclick="switchEngine()" style="background:#4caf50">♿ 使用 V3 引擎（文本压缩）</button>
     </div>
+    
     <div class="button-group">
       <button onclick="encryptText()">🔒 加密</button>
       <button onclick="decryptText()">🔓 解密</button>
     </div>
 
-  <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
-  <div class="char-count" id="charCount">字符数: 0</div>
-  <div class="copy-swap-group">
-    <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
-    <button id="swapBtn" onclick="swapIO()">🔁 一键交换</button>
+    <textarea id="outputText" placeholder="结果会显示在这里..." readonly></textarea>
+    <div class="char-count" id="charCount">字符数: 0</div>
+    <div class="copy-swap-group">
+      <button id="copyBtn" onclick="copyResult()">📋 一键复制</button>
+      <button id="swapBtn" onclick="swapIO()">🔁 一键交换</button>
+    </div>
+    <footer>
+      <p>Github @ idk114-514 | 数据仅在浏览器本地处理！</p>
+    </footer>
+    <div id="toast" class="toast"></div>
   </div>
-  <footer>
-    <p>Github @ idk114-514</p>
-  </footer>
-  <div id="toast" class="toast"></div>
 </body>
 </html>

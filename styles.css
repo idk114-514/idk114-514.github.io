@@ -19,7 +19,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  overflow: hidden auto; /* 允许滚动，但我们尽量避免 */
+  overflow: hidden auto;
 }
 
 .container {
@@ -136,15 +136,79 @@ textarea:focus {
   width: 100%;
 }
 
-.char-count {
-  margin: 6px 0 4px;
-  font-size: 13px;
-  color: #666;
+/* === V4 专用界面 === */
+.v4-section {
+  margin: 16px 0;
   text-align: left;
+  display: none;
+}
+
+.v4-info {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.v4-toggle {
+  margin: 8px 0;
+}
+
+.v4-toggle label {
+  font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v4-e2e-keys {
+  margin-top: 10px;
+}
+
+.v4-e2e-keys h4 {
+  font-size: 15px;
+  color: #e76f8e;
+  margin-bottom: 6px;
+}
+
+.v4-e2e-keys textarea {
+  height: 60px;
+  min-height: 60px;
+  max-height: 80px;
+  font-size: 13px;
+  background: #f8f8ff;
   font-family: monospace;
 }
 
-/* === 按钮组：PC 端 inline-block，移动端 flex === */
+.v4-button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.v4-button-group button, .v4-button-group label {
+  flex: 1;
+  background: #a2cfff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.v4-button-group button:hover, .v4-button-group label:hover {
+  background: #8ab9f7;
+  transform: translateY(-1px);
+}
+
+.v4-button-group input[type="file"] {
+  display: none;
+}
 
 .button-group {
   text-align: center;
@@ -200,7 +264,6 @@ footer {
   font-size: 13px;
 }
 
-/* === Toast === */
 .toast {
   position: fixed;
   bottom: 20px;
@@ -231,99 +294,132 @@ footer {
 
 /* === 移动端：开启 flex 布局，控制高度 === */
 @media (max-width: 768px) and (orientation: portrait) {
-  body {
-    background-image: 
-      linear-gradient(rgba(255, 250, 244, 0.1), rgba(255, 250, 244, 0.1)),
-      url('mobile.jpg');
-    background-blend-mode: overlay;
-    background-size: cover;
-    background-position: center top;
-    background-attachment: scroll;
-    padding: 10px;
-    margin: 0;
-    height: 100dvh;
-    min-height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-  }
+ body {
+   background-image:
+     linear-gradient(rgba(255, 250, 244, 0.1), rgba(255, 250, 244, 0.1)),
+     url('mobile.jpg');
+   background-blend-mode: overlay;
+   background-size: cover;
+   background-position: center top;
+   background-attachment: scroll;
+   padding: 10px;
+   margin: 0;
+   height: 100dvh;
+   min-height: 100dvh;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   overflow: hidden;
+ }
 
-  .container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    height: 95dvh;
-    max-height: 95dvh;
-    overflow: hidden;
-  }
+ .container {
+   display: flex;
+   flex-direction: column;
+   gap: 8px; /* 调整垂直间距 */
+   padding: 12px;
+   height: 95dvh;
+   max-height: 95dvh;
+   overflow: hidden;
+ }
 
-  h1 { font-size: 22px; margin: 6px 0; }
-  p { font-size: 13px; margin: 4px 0; }
+ h1 { font-size: 20px; margin: 4px 0; }
+ p { font-size: 12px; margin: 3px 0; }
 
-  .cat-img {
-    width: 60px;
-    height: 60px;
-    margin: 8px auto;
-  }
+ .cat-img {
+   width: 50px;
+   height: 50px;
+   margin: 6px auto;
+ }
 
-  textarea {
-    height: 70px;
-    min-height: 70px;
-    max-height: 70px;
-    font-size: 15px;
-    padding: 10px;
-  }
+ textarea {
+   height: 60px;
+   min-height: 60px;
+   max-height: 60px;
+   font-size: 14px;
+   padding: 8px;
+   margin: 6px 0;
+ }
 
-  .key-section, .toggle-section, .engine-toggle, .char-count {
-    flex-shrink: 0;
-  }
+ .key-section, .toggle-section, .engine-toggle, .char-count, .v4-section {
+   flex-shrink: 0;
+   margin-top: 4px;
+   margin-bottom: 4px;
+ }
 
-  .key-section input,
-  .engine-toggle button {
-    font-size: 14px;
-    padding: 8px;
-  }
+ .key-section label { font-size: 13px; margin-bottom: 4px; }
+ .key-section input { font-size: 13px; padding: 6px; }
 
-  .engine-toggle button { padding: 6px 12px; }
+ .toggle-section label { font-size: 13px; gap: 6px; }
+ .toggle-section input { transform: scale(1); }
 
-  .char-count { font-size: 13px; }
+ .engine-toggle button {
+   font-size: 12px;
+   padding: 5px 10px;
+   border-radius: 16px;
+ }
 
-  /* 移动端按钮 flex 均分 */
-  .button-group,
-  .copy-swap-group {
-    display: flex;
-    gap: 10px;
-    margin: 10px 0;
-  }
+ .char-count { font-size: 12px; }
 
-  .button-group button,
-  .copy-swap-group button {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 8px;
-    font-size: 14px;
-    border-radius: 24px;
-  }
+ /* 更紧凑的 V4 界面，按钮水平排列 */
+ .v4-section { margin-top: 8px; margin-bottom: 8px; }
+ .v4-info { font-size: 12px; margin-bottom: 4px; }
+ .v4-toggle label { font-size: 13px; gap: 6px; }
+ .v4-e2e-keys h4 { font-size: 14px; margin-bottom: 3px; }
+ .v4-e2e-keys textarea { height: 50px; min-height: 50px; max-height: 50px; font-size: 12px; padding: 6px; margin-top: 3px; margin-bottom: 3px; }
 
-  .button-group button {
-    background: #e76f8e;
-    color: white;
-  }
+ .v4-button-group {
+   display: flex;
+   justify-content: space-between;
+   gap: 6px; /* 水平按钮间距 */
+   margin-top: 6px;
+ }
 
-  .copy-swap-group button {
-    background: #a2cfff;
-    color: white;
-  }
+ .v4-button-group button, .v4-button-group label {
+   flex: 1; /* 水平方向平均分配空间 */
+   width: auto; /* 宽度根据内容自适应 */
+   padding: 6px 8px;
+   border-radius: 16px;
+   font-size: 12px;
+ }
 
-  footer {
-    margin-top: auto;
-    font-size: 12px;
-  }
+ /* 移动端按钮 flex 均分，水平排列 */
+ .button-group {
+   display: flex;
+   gap: 10px;
+   margin: 8px 0;
+ }
 
-  @supports (height: 100dvh) {
-    body { height: 100dvh; }
-    .container { height: 95dvh; }
-  }
+ .button-group button {
+   flex: 1;
+   min-width: 0;
+   padding: 8px 6px;
+   font-size: 13px;
+   border-radius: 20px;
+ }
+
+ .copy-swap-group {
+   display: flex;
+   justify-content: space-between;
+   gap: 6px; /* 水平按钮间距 */
+   margin: 8px 0;
+ }
+
+ .copy-swap-group button {
+   flex: 1;
+   padding: 8px 6px;
+   font-size: 13px;
+   border-radius: 20px;
+ }
+
+ .button-group button { background: #e76f8e; color: white; }
+ .copy-swap-group button { background: #a2cfff; color: white; }
+
+ footer { margin-top: auto; font-size: 11px; }
+
+ .toast { font-size: 12px; padding: 8px 16px; border-radius: 6px; }
+
+ @supports (height: 100dvh) {
+   body { height: 100dvh; }
+   .container { height: 95dvh; }
+ }
 }
