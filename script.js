@@ -4,7 +4,7 @@
 //===== MoeCipher 姬言 =====//
 // ================== 全局变量 ==================
 let currentEngine = 'v3'; // 'v1', 'v3' 或 'v4'
-let v4KeyPair = null; // 用于存储V4公私钥对
+let v4KeyPair = null; // 用于存储V4公私钥对 { privateKey, publicKey, rawPublicKey }
 
 // ================== MoeCipher V1（原版） ==================
 const V1 = {
@@ -176,67 +176,57 @@ const V4 = {
     EPHEMERAL_KEY_LENGTH: 97 // 1 (tag 0x04) + 48 (x) + 48 (y) for P-384
 };
 
-
 async function v4_sha256(data) {
     return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
 }
 
-// --- V4 Encoding and Rhythm (Moe String Conversion) ---
-
 function v4_bytesToMoe(bytes) {
     if (bytes.length === 0) return '';
-
     let zeroPrefix = '';
     let nonZeroStartIndex = 0;
     while (nonZeroStartIndex < bytes.length && bytes[nonZeroStartIndex] === 0) {
         zeroPrefix += V4.SOUND_CHARS[0];
         nonZeroStartIndex++;
     }
-
     const nonZeroBytes = bytes.slice(nonZeroStartIndex);
     if (nonZeroBytes.length === 0) return zeroPrefix;
-
     let bigInt = BigInt(0);
     for (const byte of nonZeroBytes) {
         bigInt = (bigInt << BigInt(8)) + BigInt(byte);
     }
-    
     let base10Representation = '';
+    if (bigInt === BigInt(0)) {
+       return zeroPrefix + V4.SOUND_CHARS[0];
+    }
     while (bigInt > BigInt(0)) {
         base10Representation = V4.SOUND_CHARS[Number(bigInt % BigInt(10))] + base10Representation;
         bigInt /= BigInt(10);
     }
-    return zeroPrefix + (base10Representation || V4.SOUND_CHARS[0]);
+    return zeroPrefix + base10Representation;
 }
 
 function v4_moeToBytes(moeString) {
     const cleanMoeString = moeString.split('').filter(char => char in V4.SOUND_DECODE_MAP).join('');
     if (!cleanMoeString) return new Uint8Array(0);
-    
     let zeroPrefixLength = 0;
     while (zeroPrefixLength < cleanMoeString.length && cleanMoeString[zeroPrefixLength] === V4.SOUND_CHARS[0]) {
         zeroPrefixLength++;
     }
-
     const nonZeroString = cleanMoeString.slice(zeroPrefixLength);
-
-    if (nonZeroString.length === 0 && zeroPrefixLength > 0) {
+    if (nonZeroString.length === 0) {
         const bytes = new Uint8Array(zeroPrefixLength);
         bytes.fill(0);
         return bytes;
     }
-
     let bigInt = BigInt(0);
     for (const char of nonZeroString) {
         bigInt = bigInt * BigInt(10) + BigInt(V4.SOUND_DECODE_MAP[char]);
     }
-    
     const byteList = [];
     while (bigInt > BigInt(0)) {
         byteList.push(Number(bigInt & BigInt(0xFF)));
         bigInt >>= BigInt(8);
     }
-    
     const result = new Uint8Array(zeroPrefixLength + byteList.length);
     result.fill(0, 0, zeroPrefixLength);
     result.set(byteList.reverse(), zeroPrefixLength);
@@ -247,7 +237,6 @@ function v4_add_rhythm(moeSoundString, key) {
     const rng = new Math.seedrandom(key);
     const result = [];
     let sourceChars = moeSoundString.split('');
-
     while (sourceChars.length > 0) {
         const phraseLen = Math.floor(rng() * 5) + 2; // 2-6
         let phrase = '';
@@ -261,8 +250,6 @@ function v4_add_rhythm(moeSoundString, key) {
     }
     return result.join('');
 }
-
-// --- V4 Traditional (Symmetric Keystream) Encryption ---
 
 async function* v4_keystream_generator(key) {
     const encoder = new TextEncoder();
@@ -282,8 +269,6 @@ async function v4_crypt_data(data, keystream_key) {
     return resultBytes;
 }
 
-// --- V4 E2E (ECC) Core Functions ---
-
 async function v4_encrypt_e2e(text, recipientPublicKey) {
     const plaintextBytes = new TextEncoder().encode(text);
     const checksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
@@ -291,19 +276,15 @@ async function v4_encrypt_e2e(text, recipientPublicKey) {
     dataWithChecksum.set(checksum);
     dataWithChecksum.set(plaintextBytes, checksum.length);
     const compressedData = pako.deflate(dataWithChecksum, { level: 9 });
-
     const ephemeralKeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveKey"]);
     const sharedSecret = await crypto.subtle.deriveKey({ name: V4.E2E_ALGORITHM.name, public: recipientPublicKey }, ephemeralKeyPair.privateKey, V4.SYMMETRIC_ALGORITHM, true, ["encrypt"]);
-    
     const iv = crypto.getRandomValues(new Uint8Array(V4.IV_LENGTH));
     const encryptedData = await crypto.subtle.encrypt({ name: V4.SYMMETRIC_ALGORITHM.name, iv: iv }, sharedSecret, compressedData);
     const ephemeralPublicKeyRaw = await crypto.subtle.exportKey("raw", ephemeralKeyPair.publicKey);
-
     const combinedData = new Uint8Array(ephemeralPublicKeyRaw.byteLength + iv.byteLength + encryptedData.byteLength);
     combinedData.set(new Uint8Array(ephemeralPublicKeyRaw), 0);
     combinedData.set(iv, ephemeralPublicKeyRaw.byteLength);
     combinedData.set(new Uint8Array(encryptedData), ephemeralPublicKeyRaw.byteLength + iv.byteLength);
-
     const moeSoundString = v4_bytesToMoe(combinedData);
     return v4_add_rhythm(moeSoundString, 'e2e' + Date.now());
 }
@@ -311,36 +292,28 @@ async function v4_encrypt_e2e(text, recipientPublicKey) {
 async function v4_decrypt_e2e(ciphertext, privateKey) {
     const combinedData = v4_moeToBytes(ciphertext);
     if (combinedData.length < V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH) throw new Error("密文无效：数据过短");
-
     const ephemeralPublicKeyRaw = combinedData.slice(0, V4.EPHEMERAL_KEY_LENGTH);
     const iv = combinedData.slice(V4.EPHEMERAL_KEY_LENGTH, V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH);
     const encryptedData = combinedData.slice(V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH);
-
     const ephemeralPublicKey = await crypto.subtle.importKey("raw", ephemeralPublicKeyRaw, V4.E2E_ALGORITHM, true, []);
     const sharedSecret = await crypto.subtle.deriveKey({ name: V4.E2E_ALGORITHM.name, public: ephemeralPublicKey }, privateKey, V4.SYMMETRIC_ALGORITHM, true, ["decrypt"]);
-    
     let compressedData;
     try {
         compressedData = await crypto.subtle.decrypt({ name: V4.SYMMETRIC_ALGORITHM.name, iv: iv }, sharedSecret, encryptedData);
     } catch (e) {
         throw new Error("解密失败：私钥错误或密文已被篡改。");
     }
-
     const decompressedData = pako.inflate(new Uint8Array(compressedData));
     if (decompressedData.length < V4.CHECKSUM_LENGTH) throw new Error("解密失败：密文数据不完整，缺少校验码。");
-
     const receivedChecksum = decompressedData.slice(0, V4.CHECKSUM_LENGTH);
     const plaintextBytes = decompressedData.slice(V4.CHECKSUM_LENGTH);
     const expectedChecksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
-
     if (receivedChecksum.join(',') !== expectedChecksum.join(',')) {
         throw new Error("校验失败：密文数据已被篡改或密钥错误。");
     }
-
     return new TextDecoder().decode(plaintextBytes);
 }
 
-// --- V4 Legacy (Symmetric) Core Functions ---
 async function v4_encrypt_legacy(text, key = V4.KEY) {
     const plaintextBytes = new TextEncoder().encode(text);
     const checksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
@@ -358,22 +331,17 @@ async function v4_decrypt_legacy(ciphertext, key = V4.KEY) {
     const encryptedBytes = v4_moeToBytes(ciphertext);
     if (encryptedBytes.length === 0) throw new Error("密文无效：不包含任何有效的声音字符。");
     const compressedData = await v4_crypt_data(encryptedBytes, key);
-    
     let decompressedData;
     try {
         decompressedData = pako.inflate(compressedData);
     } catch (e) { throw new Error("解密失败：密钥错误或密文已损坏。"); }
-
     if (decompressedData.length < V4.CHECKSUM_LENGTH) throw new Error("解密失败：密文数据不完整，缺少校验码。");
-
     const receivedChecksum = decompressedData.slice(0, V4.CHECKSUM_LENGTH);
     const plaintextBytes = decompressedData.slice(V4.CHECKSUM_LENGTH);
     const expectedChecksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
-
     if (receivedChecksum.join(',') !== expectedChecksum.join(',')) {
         throw new Error("校验失败：密钥错误或密文数据已被篡改。");
     }
-    
     return new TextDecoder().decode(plaintextBytes);
 }
 
@@ -381,7 +349,6 @@ async function v4_decrypt_legacy(ciphertext, key = V4.KEY) {
 async function encryptText() {
     const input = document.getElementById('inputText').value.trim();
     if (!input) return showToast('请输入内容！', 'info');
-
     try {
         let result;
         if (currentEngine === 'v1') {
@@ -398,7 +365,18 @@ async function encryptText() {
             } else {
                 const publicKeyText = document.getElementById('v4PublicKeyInput').value.trim();
                 if (!publicKeyText) return showToast('E2E模式需要输入对方的公钥！', 'error');
-                const keyBuffer = base64ToArrayBuffer(publicKeyText);
+                
+                // 自动检测密钥格式
+                let keyBuffer;
+                // 检查是否包含 "moe" 字符之外的 Base64 字符来判断格式
+                const isLikelyBase64 = /[A-Za-z0-9+/=]/.test(publicKeyText) && !V4.SOUND_CHARS.some(char => publicKeyText.includes(char));
+
+                if(isLikelyBase64) {
+                    keyBuffer = base64ToArrayBuffer(publicKeyText);
+                } else {
+                    keyBuffer = v4_moeToBytes(publicKeyText);
+                }
+
                 const publicKey = await crypto.subtle.importKey("raw", keyBuffer, V4.E2E_ALGORITHM, true, []);
                 result = await v4_encrypt_e2e(input, publicKey);
             }
@@ -417,7 +395,6 @@ async function encryptText() {
 async function decryptText() {
     const input = document.getElementById('inputText').value.trim();
     if (!input) return showToast('请输入内容！', 'info');
-
     try {
         let result;
         if (currentEngine === 'v1') {
@@ -494,7 +471,6 @@ function switchEngine() {
     const engines = ['v1', 'v3', 'v4'];
     const currentIdx = engines.indexOf(currentEngine);
     currentEngine = engines[(currentIdx + 1) % engines.length];
-
     if (currentEngine === 'v1') {
         btn.textContent = '🔄 使用 V1 引擎';
         btn.style.background = '#a2cfff';
@@ -519,7 +495,6 @@ function updateV4UI() {
     const legacyMode = document.getElementById('v4LegacyToggle').checked;
     const keySection = document.getElementById('key-section');
     const v4E2EKeys = document.getElementById('v4-e2e-keys');
-
     if (legacyMode) {
         keySection.style.display = 'block';
         v4E2EKeys.style.display = 'none';
@@ -535,25 +510,52 @@ async function generateV4KeyPair() {
     try {
         v4KeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveKey"]);
         const publicKeyRaw = await crypto.subtle.exportKey("raw", v4KeyPair.publicKey);
+        v4KeyPair.rawPublicKey = publicKeyRaw; // 缓存原始公钥数据
         
-        document.getElementById('v4PublicKeyInput').value = arrayBufferToBase64(publicKeyRaw);
+        updatePublicKeyDisplay(); // 更新显示
         document.getElementById('v4PrivateKeyDisplay').value = '您的私钥已在内存中准备就绪。为安全起见，请点击下方按钮下载备份。';
-
         showToast('✅ 密钥对生成成功！', 'success');
     } catch (e) { showToast('密钥生成失败: ' + e.message, 'error'); console.error(e); }
 }
 
+function toggleV4KeyFormat() {
+    updatePublicKeyDisplay();
+}
+
+function updatePublicKeyDisplay() {
+    if (!v4KeyPair || !v4KeyPair.rawPublicKey) return;
+    const useMoeFormat = document.getElementById('v4KeyFormatToggle').checked;
+    const keyDisplay = document.getElementById('v4PublicKeyInput');
+    
+    if (useMoeFormat) {
+        const moeSoundString = v4_bytesToMoe(new Uint8Array(v4KeyPair.rawPublicKey));
+        // 为姬言密钥注入节奏和美感！
+        keyDisplay.value = v4_add_rhythm(moeSoundString, 'moe-key-rhythm');
+        keyDisplay.placeholder = '请在此处粘贴姬言格式的公钥...';
+    } else {
+        keyDisplay.value = arrayBufferToBase64(v4KeyPair.rawPublicKey);
+        keyDisplay.placeholder = '请在此处粘贴Base64格式的公钥...';
+    }
+}
+
 async function downloadV4Key(keyType) {
-    if (!v4KeyPair && keyType === 'private') return showToast('请先生成密钥对！', 'error');
+    if (keyType === 'private' && !v4KeyPair) return showToast('请先生成密钥对！', 'error');
 
     try {
         let blob, fileName;
         if (keyType === 'public') {
             const publicKeyText = document.getElementById('v4PublicKeyInput').value;
             if (!publicKeyText) return showToast('请先生成密钥对！', 'error');
-            blob = new Blob([publicKeyText], { type: 'text/plain' });
-            fileName = 'moecipher_public_key.txt';
-        } else {
+            
+            const useMoeFormat = document.getElementById('v4KeyFormatToggle').checked;
+            if (useMoeFormat) {
+                blob = new Blob([publicKeyText], { type: 'text/plain;charset=utf-8' });
+                fileName = 'moecipher_public_key.moe';
+            } else {
+                blob = new Blob([publicKeyText], { type: 'text/plain' });
+                fileName = 'moecipher_public_key.txt';
+            }
+        } else { // private
             const privateKeyJwk = await crypto.subtle.exportKey("jwk", v4KeyPair.privateKey);
             blob = new Blob([JSON.stringify(privateKeyJwk, null, 2)], { type: 'application/json' });
             fileName = 'moecipher_private_key.json';
@@ -568,36 +570,30 @@ async function downloadV4Key(keyType) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showToast(`✅ ${keyType==='public'?'公钥':'私钥'}文件已开始下载`, 'success');
-
     } catch (e) { showToast('密钥导出失败: ' + e.message, 'error'); }
 }
 
 function uploadV4Key(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
             const keyJwk = JSON.parse(e.target.result);
             if (!keyJwk.d) throw new Error("文件不是有效的私钥 (JWK 格式)。");
-
             const privateKey = await crypto.subtle.importKey("jwk", keyJwk, V4.E2E_ALGORITHM, true, ["deriveKey"]);
-            v4KeyPair = { privateKey: privateKey, publicKey: null };
-
+            v4KeyPair = { privateKey: privateKey, publicKey: null, rawPublicKey: null };
             document.getElementById('v4PrivateKeyDisplay').value = '您的私钥已成功上传并准备就绪。';
             showToast('✅ 私钥上传成功！', 'success');
-
         } catch (err) {
             showToast('密钥文件无效或类型错误！' + err.message, 'error');
             console.error(err);
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
+    event.target.value = '';
 }
 
-// 辅助函数
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -608,13 +604,17 @@ function arrayBufferToBase64(buffer) {
 }
 
 function base64ToArrayBuffer(base64) {
-    const binary_string = window.atob(base64);
-    const len = binary_string.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
+    try {
+        const binary_string = window.atob(base64);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    } catch (e) {
+        throw new Error("无效的Base64密钥格式。");
     }
-    return bytes.buffer;
 }
 
 function updateCharCount(text) {
@@ -629,11 +629,6 @@ function showToast(message, type = 'info') {
     setTimeout(() => { toast.classList.remove('show'); }, 2500);
 }
 
-// 初始化
 document.addEventListener('DOMContentLoaded', () => {
     updateCharCount('');
-    const uploadInput = document.getElementById('uploadPrivateKey');
-    if(uploadInput) {
-        uploadInput.setAttribute('accept', '.json'); // For private key
-    }
 });

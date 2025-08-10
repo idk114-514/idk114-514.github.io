@@ -27,6 +27,11 @@
       <div class="v4-e2e-keys" id="v4-e2e-keys" style="display: none;">
         <h4>公钥（把它发给你的好基友）：</h4>
         <textarea id="v4PublicKeyInput" placeholder="输入接收方的公钥以加密..."></textarea>
+        <div class="v4-toggle key-format-toggle">
+            <label>
+              <input type="checkbox" id="v4KeyFormatToggle" onchange="toggleV4KeyFormat()"> 姬言密钥
+            </label>
+        </div>
         <h4>私钥（仅用于解密）：</h4>
         <textarea id="v4PrivateKeyDisplay" placeholder="您的私钥会在此处显示..." readonly></textarea>
         <div class="v4-button-group">
@@ -34,7 +39,7 @@
           <button onclick="downloadV4Key('public')">下载公钥</button>
           <button onclick="downloadV4Key('private')">下载私钥</button>
           <label for="uploadPrivateKey">上传私钥</label>
-          <input type="file" id="uploadPrivateKey" accept=".pem" onchange="uploadV4Key(event, 'private')">
+          <input type="file" id="uploadPrivateKey" accept=".json" onchange="uploadV4Key(event)">
         </div>
       </div>
     </div>
