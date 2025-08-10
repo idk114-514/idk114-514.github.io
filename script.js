@@ -170,26 +170,58 @@ const V4 = {
     SOUND_DECODE_MAP: { '哦':0, '啊':1, '嗯':2, '咿':3, '咕':4, '哼':5, '呼':6, '唔':7, '齁':8, '喔':9 },
     KEY: 'onanii',
     CHECKSUM_LENGTH: 4,
-    E2E_ALGORITHM: { name: "ECDH", namedCurve: "P-384" },
+    // E2E使用X25519
+    E2E_ALGORITHM: { name: "X25519" },
     SYMMETRIC_ALGORITHM: { name: "AES-GCM", length: 256 },
-    IV_LENGTH: 12,
-    EPHEMERAL_KEY_LENGTH: 97 // 1 (tag 0x04) + 48 (x) + 48 (y) for P-384
+    IV_LENGTH: 16,
+    // X25519公钥长度为32字节
+    EPHEMERAL_KEY_LENGTH: 32,
+    KDF_SALT_LENGTH: 16,
+    KDF_ITERATIONS: 100000,
 };
 
 async function v4_sha256(data) {
     return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
 }
 
+async function v4_deriveKey(password, salt) {
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveBits", "deriveKey"]
+    );
+    return await crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: V4.KDF_ITERATIONS,
+            hash: "SHA-256",
+        },
+        keyMaterial,
+        V4.SYMMETRIC_ALGORITHM,
+        true,
+        ["encrypt", "decrypt"]
+    );
+}
+
 function v4_bytesToMoe(bytes) {
     if (bytes.length === 0) return '';
-    let zeroPrefix = '';
     let nonZeroStartIndex = 0;
     while (nonZeroStartIndex < bytes.length && bytes[nonZeroStartIndex] === 0) {
-        zeroPrefix += V4.SOUND_CHARS[0];
         nonZeroStartIndex++;
     }
+
+    let zeroPrefix = '';
+    for(let i=0; i<nonZeroStartIndex; i++) {
+        zeroPrefix += V4.SOUND_CHARS[0];
+    }
+
     const nonZeroBytes = bytes.slice(nonZeroStartIndex);
     if (nonZeroBytes.length === 0) return zeroPrefix;
+
     let bigInt = BigInt(0);
     for (const byte of nonZeroBytes) {
         bigInt = (bigInt << BigInt(8)) + BigInt(byte);
@@ -233,40 +265,26 @@ function v4_moeToBytes(moeString) {
     return result;
 }
 
+// 再次修改了v4_add_rhythm函数，使其标点符号的插入位置更随机
 function v4_add_rhythm(moeSoundString, key) {
     const rng = new Math.seedrandom(key);
     const result = [];
-    let sourceChars = moeSoundString.split('');
-    while (sourceChars.length > 0) {
-        const phraseLen = Math.floor(rng() * 5) + 2; // 2-6
-        let phrase = '';
-        for (let i = 0; i < phraseLen && sourceChars.length > 0; i++) {
-            phrase += sourceChars.shift();
-        }
-        if (phrase) {
+    let chars = moeSoundString.split('');
+    let charCount = 0;
+
+    while (chars.length > 0) {
+        let char = chars.shift();
+        result.push(char);
+        charCount++;
+
+        // 每隔5到10个声音字符，有一定概率插入一个标点
+        if (charCount >= 1 && (rng() < 0.6 || charCount >= 5)) {
             const punctuation = V4.PUNCTUATION_CHARS[Math.floor(rng() * V4.PUNCTUATION_CHARS.length)];
-            result.push(phrase + punctuation);
+            result.push(punctuation);
+            charCount = 0;
         }
     }
     return result.join('');
-}
-
-async function* v4_keystream_generator(key) {
-    const encoder = new TextEncoder();
-    let seed = await v4_sha256(encoder.encode(key));
-    while (true) {
-        for (const byte of seed) yield byte;
-        seed = await v4_sha256(seed);
-    }
-}
-
-async function v4_crypt_data(data, keystream_key) {
-    const keystream = v4_keystream_generator(keystream_key);
-    const resultBytes = new Uint8Array(data.length);
-    for (let i = 0; i < data.length; i++) {
-        resultBytes[i] = data[i] ^ (await keystream.next()).value;
-    }
-    return resultBytes;
 }
 
 async function v4_encrypt_e2e(text, recipientPublicKey) {
@@ -276,15 +294,24 @@ async function v4_encrypt_e2e(text, recipientPublicKey) {
     dataWithChecksum.set(checksum);
     dataWithChecksum.set(plaintextBytes, checksum.length);
     const compressedData = pako.deflate(dataWithChecksum, { level: 9 });
-    const ephemeralKeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveKey"]);
-    const sharedSecret = await crypto.subtle.deriveKey({ name: V4.E2E_ALGORITHM.name, public: recipientPublicKey }, ephemeralKeyPair.privateKey, V4.SYMMETRIC_ALGORITHM, true, ["encrypt"]);
+
+    const ephemeralKeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveBits"]);
+    const sharedSecretBytes = await crypto.subtle.deriveBits(
+        { name: "X25519", public: recipientPublicKey },
+        ephemeralKeyPair.privateKey,
+        256 // 256 bits for AES-256
+    );
+
+    const sharedSecret = await crypto.subtle.importKey("raw", sharedSecretBytes, V4.SYMMETRIC_ALGORITHM, false, ["encrypt"]);
     const iv = crypto.getRandomValues(new Uint8Array(V4.IV_LENGTH));
     const encryptedData = await crypto.subtle.encrypt({ name: V4.SYMMETRIC_ALGORITHM.name, iv: iv }, sharedSecret, compressedData);
     const ephemeralPublicKeyRaw = await crypto.subtle.exportKey("raw", ephemeralKeyPair.publicKey);
+
     const combinedData = new Uint8Array(ephemeralPublicKeyRaw.byteLength + iv.byteLength + encryptedData.byteLength);
     combinedData.set(new Uint8Array(ephemeralPublicKeyRaw), 0);
     combinedData.set(iv, ephemeralPublicKeyRaw.byteLength);
     combinedData.set(new Uint8Array(encryptedData), ephemeralPublicKeyRaw.byteLength + iv.byteLength);
+
     const moeSoundString = v4_bytesToMoe(combinedData);
     return v4_add_rhythm(moeSoundString, 'e2e' + Date.now());
 }
@@ -292,25 +319,38 @@ async function v4_encrypt_e2e(text, recipientPublicKey) {
 async function v4_decrypt_e2e(ciphertext, privateKey) {
     const combinedData = v4_moeToBytes(ciphertext);
     if (combinedData.length < V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH) throw new Error("密文无效：数据过短");
+
     const ephemeralPublicKeyRaw = combinedData.slice(0, V4.EPHEMERAL_KEY_LENGTH);
     const iv = combinedData.slice(V4.EPHEMERAL_KEY_LENGTH, V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH);
     const encryptedData = combinedData.slice(V4.EPHEMERAL_KEY_LENGTH + V4.IV_LENGTH);
+
     const ephemeralPublicKey = await crypto.subtle.importKey("raw", ephemeralPublicKeyRaw, V4.E2E_ALGORITHM, true, []);
-    const sharedSecret = await crypto.subtle.deriveKey({ name: V4.E2E_ALGORITHM.name, public: ephemeralPublicKey }, privateKey, V4.SYMMETRIC_ALGORITHM, true, ["decrypt"]);
+    
+    const sharedSecretBytes = await crypto.subtle.deriveBits(
+        { name: "X25519", public: ephemeralPublicKey },
+        privateKey,
+        256
+    );
+    const sharedSecret = await crypto.subtle.importKey("raw", sharedSecretBytes, V4.SYMMETRIC_ALGORITHM, false, ["decrypt"]);
+
     let compressedData;
     try {
         compressedData = await crypto.subtle.decrypt({ name: V4.SYMMETRIC_ALGORITHM.name, iv: iv }, sharedSecret, encryptedData);
     } catch (e) {
         throw new Error("解密失败：私钥错误或密文已被篡改。");
     }
+
     const decompressedData = pako.inflate(new Uint8Array(compressedData));
     if (decompressedData.length < V4.CHECKSUM_LENGTH) throw new Error("解密失败：密文数据不完整，缺少校验码。");
+
     const receivedChecksum = decompressedData.slice(0, V4.CHECKSUM_LENGTH);
     const plaintextBytes = decompressedData.slice(V4.CHECKSUM_LENGTH);
     const expectedChecksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
+
     if (receivedChecksum.join(',') !== expectedChecksum.join(',')) {
         throw new Error("校验失败：密文数据已被篡改或密钥错误。");
     }
+
     return new TextDecoder().decode(plaintextBytes);
 }
 
@@ -320,35 +360,77 @@ async function v4_encrypt_legacy(text, key = V4.KEY) {
     const dataWithChecksum = new Uint8Array(checksum.length + plaintextBytes.length);
     dataWithChecksum.set(checksum);
     dataWithChecksum.set(plaintextBytes, checksum.length);
+    
     const compressedData = pako.deflate(dataWithChecksum, { level: 9 });
-    const encryptedBytes = await v4_crypt_data(compressedData, key);
-    const moeSoundString = v4_bytesToMoe(encryptedBytes);
-    return v4_add_rhythm(moeSoundString, key);
+
+    const salt = crypto.getRandomValues(new Uint8Array(V4.KDF_SALT_LENGTH));
+    const symmetricKey = await v4_deriveKey(key, salt);
+    const iv = crypto.getRandomValues(new Uint8Array(V4.IV_LENGTH));
+    
+    const encryptedData = await crypto.subtle.encrypt(
+        { name: V4.SYMMETRIC_ALGORITHM.name, iv: iv },
+        symmetricKey,
+        compressedData
+    );
+
+    const combinedData = new Uint8Array(salt.byteLength + iv.byteLength + encryptedData.byteLength);
+    combinedData.set(salt, 0);
+    combinedData.set(iv, salt.byteLength);
+    combinedData.set(new Uint8Array(encryptedData), salt.byteLength + iv.byteLength);
+
+    const moeSoundString = v4_bytesToMoe(combinedData);
+    // 使用随机生成的salt作为种子，确保每次加密的标点位置都不同
+    const saltString = new TextDecoder().decode(salt);
+    return v4_add_rhythm(moeSoundString, saltString);
 }
 
 async function v4_decrypt_legacy(ciphertext, key = V4.KEY) {
     if (!ciphertext) return "";
-    const encryptedBytes = v4_moeToBytes(ciphertext);
-    if (encryptedBytes.length === 0) throw new Error("密文无效：不包含任何有效的声音字符。");
-    const compressedData = await v4_crypt_data(encryptedBytes, key);
+    const combinedData = v4_moeToBytes(ciphertext);
+    if (combinedData.length === 0) throw new Error("密文无效：不包含任何有效的声音字符。");
+
+    const salt = combinedData.slice(0, V4.KDF_SALT_LENGTH);
+    const iv = combinedData.slice(V4.KDF_SALT_LENGTH, V4.KDF_SALT_LENGTH + V4.IV_LENGTH);
+    const encryptedData = combinedData.slice(V4.KDF_SALT_LENGTH + V4.IV_LENGTH);
+    
+    const symmetricKey = await v4_deriveKey(key, salt);
+
+    let compressedData;
+    try {
+        compressedData = await crypto.subtle.decrypt(
+            { name: V4.SYMMETRIC_ALGORITHM.name, iv: iv },
+            symmetricKey,
+            encryptedData
+        );
+    } catch (e) {
+        throw new Error("解密失败：密钥错误或密文已损坏。");
+    }
+
     let decompressedData;
     try {
-        decompressedData = pako.inflate(compressedData);
+        decompressedData = pako.inflate(new Uint8Array(compressedData));
     } catch (e) { throw new Error("解密失败：密钥错误或密文已损坏。"); }
+
     if (decompressedData.length < V4.CHECKSUM_LENGTH) throw new Error("解密失败：密文数据不完整，缺少校验码。");
     const receivedChecksum = decompressedData.slice(0, V4.CHECKSUM_LENGTH);
     const plaintextBytes = decompressedData.slice(V4.CHECKSUM_LENGTH);
     const expectedChecksum = (await v4_sha256(plaintextBytes)).slice(0, V4.CHECKSUM_LENGTH);
+
     if (receivedChecksum.join(',') !== expectedChecksum.join(',')) {
         throw new Error("校验失败：密钥错误或密文数据已被篡改。");
     }
+
     return new TextDecoder().decode(plaintextBytes);
 }
 
 // ================== UI 控制 ==================
 async function encryptText() {
     const input = document.getElementById('inputText').value.trim();
-    if (!input) return showToast('请输入内容！', 'info');
+    if (!input) {
+        document.getElementById('outputText').value = '';
+        updateCharCount('', '');
+        return showToast('请输入内容！', 'info');
+    }
     try {
         let result;
         if (currentEngine === 'v1') {
@@ -368,7 +450,6 @@ async function encryptText() {
                 
                 // 自动检测密钥格式
                 let keyBuffer;
-                // 检查是否包含 "moe" 字符之外的 Base64 字符来判断格式
                 const isLikelyBase64 = /[A-Za-z0-9+/=]/.test(publicKeyText) && !V4.SOUND_CHARS.some(char => publicKeyText.includes(char));
 
                 if(isLikelyBase64) {
@@ -382,7 +463,7 @@ async function encryptText() {
             }
         }
         document.getElementById('outputText').value = result;
-        updateCharCount(result);
+        updateCharCount(result, input);
         if (!document.getElementById('autoEncryptToggle').checked) {
             showToast('加密成功！', 'success');
         }
@@ -416,7 +497,7 @@ async function decryptText() {
             }
         }
         document.getElementById('outputText').value = result;
-        updateCharCount(result);
+        updateCharCount(input, result);
         showToast('解密成功！', 'success');
     } catch (e) {
         showToast('解密失败: ' + e.message, 'error');
@@ -429,7 +510,8 @@ function swapIO() {
     if (!out) return showToast('输出为空', 'error');
     document.getElementById('inputText').value = out;
     document.getElementById('outputText').value = '';
-    updateCharCount('');
+    // 交换后，无法确定原始明文长度，只更新字符数
+    updateCharCount(out, '');
     showToast('✅ 输出已填入输入框', 'success');
 }
 
@@ -482,13 +564,16 @@ function switchEngine() {
         v4Section.style.display = 'none';
         keySection.style.display = 'block';
     } else { // 'v4'
-        btn.textContent = '🔒 使用 V4 引擎（ECC E2EE）';
+        btn.textContent = '🔒 使用 V4 引擎（X25519 E2EE）';
         btn.style.background = '#e76f8e';
         v4Section.style.display = 'block';
         updateV4UI();
     }
     document.getElementById('keyInput').value = 'onanii';
     showToast(`已切换到 ${currentEngine.toUpperCase()} 引擎`, 'info');
+    document.getElementById('inputText').value = '';
+    document.getElementById('outputText').value = '';
+    updateCharCount('', '');
 }
 
 function updateV4UI() {
@@ -502,17 +587,17 @@ function updateV4UI() {
     } else {
         keySection.style.display = 'none';
         v4E2EKeys.style.display = 'block';
-        document.getElementById('v4EncryptInfo').textContent = 'V4端到端模式使用ECDH+AES-GCM。请将您的公钥发给对方，并输入对方的公钥来加密消息。';
+        document.getElementById('v4EncryptInfo').textContent = 'V4端到端模式使用X25519+AES-GCM。请将您的公钥发给对方，并输入对方的公钥来加密消息。';
     }
 }
 
 async function generateV4KeyPair() {
     try {
-        v4KeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveKey"]);
+        v4KeyPair = await crypto.subtle.generateKey(V4.E2E_ALGORITHM, true, ["deriveBits"]);
         const publicKeyRaw = await crypto.subtle.exportKey("raw", v4KeyPair.publicKey);
-        v4KeyPair.rawPublicKey = publicKeyRaw; // 缓存原始公钥数据
+        v4KeyPair.rawPublicKey = publicKeyRaw;
         
-        updatePublicKeyDisplay(); // 更新显示
+        updatePublicKeyDisplay();
         document.getElementById('v4PrivateKeyDisplay').value = '您的私钥已在内存中准备就绪。为安全起见，请点击下方按钮下载备份。';
         showToast('✅ 密钥对生成成功！', 'success');
     } catch (e) { showToast('密钥生成失败: ' + e.message, 'error'); console.error(e); }
@@ -529,7 +614,6 @@ function updatePublicKeyDisplay() {
     
     if (useMoeFormat) {
         const moeSoundString = v4_bytesToMoe(new Uint8Array(v4KeyPair.rawPublicKey));
-        // 为姬言密钥注入节奏和美感！
         keyDisplay.value = v4_add_rhythm(moeSoundString, 'moe-key-rhythm');
         keyDisplay.placeholder = '请在此处粘贴姬言格式的公钥...';
     } else {
@@ -539,7 +623,7 @@ function updatePublicKeyDisplay() {
 }
 
 async function downloadV4Key(keyType) {
-    if (keyType === 'private' && !v4KeyPair) return showToast('请先生成密钥对！', 'error');
+    if (keyType === 'private' && (!v4KeyPair || !v4KeyPair.privateKey)) return showToast('请先生成密钥对！', 'error');
 
     try {
         let blob, fileName;
@@ -581,7 +665,7 @@ function uploadV4Key(event) {
         try {
             const keyJwk = JSON.parse(e.target.result);
             if (!keyJwk.d) throw new Error("文件不是有效的私钥 (JWK 格式)。");
-            const privateKey = await crypto.subtle.importKey("jwk", keyJwk, V4.E2E_ALGORITHM, true, ["deriveKey"]);
+            const privateKey = await crypto.subtle.importKey("jwk", keyJwk, V4.E2E_ALGORITHM, true, ["deriveBits"]);
             v4KeyPair = { privateKey: privateKey, publicKey: null, rawPublicKey: null };
             document.getElementById('v4PrivateKeyDisplay').value = '您的私钥已成功上传并准备就绪。';
             showToast('✅ 私钥上传成功！', 'success');
@@ -617,8 +701,20 @@ function base64ToArrayBuffer(base64) {
     }
 }
 
-function updateCharCount(text) {
-    document.getElementById('charCount').textContent = `字符数: ${text ? text.length : 0}`;
+// 增加了对压缩率的计算和显示，按照正负百分比形式展示
+function updateCharCount(output, input) {
+    const outputLength = output ? output.length : 0;
+    const inputLength = input ? input.length : 0;
+    let ratioText = '';
+    if (inputLength > 0) {
+        // 计算压缩率： (原文长度 - 密文长度) / 原文长度
+        const change = (inputLength - outputLength) / inputLength;
+        const percentage = (change * 100).toFixed(2);
+        // 如果百分比大于等于0，加上一个正号
+        const sign = percentage >= 0 ? '' : '';
+        ratioText = ` | 压缩率: ${sign}${percentage}%`;
+    }
+    document.getElementById('charCount').textContent = `字符数: ${outputLength}${ratioText}`;
 }
 
 function showToast(message, type = 'info') {
@@ -630,5 +726,5 @@ function showToast(message, type = 'info') {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateCharCount('');
+    updateCharCount('', '');
 });
